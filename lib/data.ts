@@ -2,10 +2,16 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 export const getAmenities = async () => {
-  const session = await auth();
-  if (!session || !session.user) {
-    throw new Error("Unauthorized Access");
+  // In development mode, skip auth check for admin functions
+  const isDevelopment = process.env.NODE_ENV === "development";
+  
+  if (!isDevelopment) {
+    const session = await auth();
+    if (!session || !session.user) {
+      throw new Error("Unauthorized Access");
+    }
   }
+  
   try {
     const result = await prisma.amenities.findMany();
     return result;
@@ -172,15 +178,21 @@ export const getTotalCustomers = async () => {
 };
 
 export const getReservations = async () => {
-  const session = await auth();
-  if (
-    !session ||
-    !session.user ||
-    !session.user.id ||
-    session.user.role !== "admin"
-  ) {
-    throw new Error("Unauthorized Access");
+  // In development mode, skip auth check for admin functions
+  const isDevelopment = process.env.NODE_ENV === "development";
+  
+  if (!isDevelopment) {
+    const session = await auth();
+    if (
+      !session ||
+      !session.user ||
+      !session.user.id ||
+      session.user.role !== "admin"
+    ) {
+      throw new Error("Unauthorized Access");
+    }
   }
+  
   try {
     const result = await prisma.reservation.findMany({
       include: {

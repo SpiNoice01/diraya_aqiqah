@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 
-const ProtectedRoutes = ["/myreservation", "/checkout", "/admin"];
+const ProtectedRoutes = ["/myreservation", "/checkout"];
 
 export async function middleware(request: NextRequest) {
   const session = await auth();
@@ -9,6 +9,9 @@ export async function middleware(request: NextRequest) {
   const role = session?.user.role;
   const { pathname } = request.nextUrl;
 
+  // Development mode: Allow admin access without authentication
+  const isDevelopment = process.env.NODE_ENV === "development";
+  
   if (
     !isLoggedIn &&
     ProtectedRoutes.some((route) => pathname.startsWith(route))
@@ -16,8 +19,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/signin", request.url));
   }
 
-  if (isLoggedIn && role !== "admin" && pathname.startsWith("/admin")) {
-    return NextResponse.redirect(new URL("/", request.url));
+  // In development, allow admin access without auth
+  if (pathname.startsWith("/admin") && !isDevelopment) {
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL("/signin", request.url));
+    }
+    if (role !== "admin") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
   }
 
   if (isLoggedIn && pathname.startsWith("/signin")) {
